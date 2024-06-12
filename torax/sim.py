@@ -51,7 +51,7 @@ from torax.stepper import stepper as stepper_lib
 from torax.time_step_calculator import chi_time_step_calculator
 from torax.time_step_calculator import time_step_calculator as ts
 from torax.transport_model import transport_model as transport_model_lib
-
+import IPython
 
 def _log_timestep(t: jax.Array, dt: jax.Array, stepper_iterations: int) -> None:
   """Logs basic timestep info."""
@@ -838,7 +838,6 @@ def run_simulation(
       initial_state.t
   )
   geo = geometry_provider(initial_state.t)
-
   # Populate the starting state with source profiles from the implicit sources
   # before starting the run-loop. The explicit source profiles will be computed
   # inside the loop and will be merged with these implicit source profiles.
