@@ -23,8 +23,12 @@ from torax import interpolated_param
 
 
 # Type-alias for clarity. While the InterpolatedParams can vary across any
-# field, in here, we mainly use it to handle time-dependent parameters.
+# field in here, we mainly use it to handle time-dependent parameters.
 TimeDependentField = interpolated_param.InterpParamOrInterpParamInput
+# Type-alias for clarity for time-and-rho-dependent parameters.
+TimeAndRhoDependentField = (
+    interpolated_param.DoublyInterpParamOrDoublyInterpParamInput
+)
 # Type-alias for brevity.
 InterpolationMode = interpolated_param.InterpolationMode
 InterpolationParam = interpolated_param.InterpolatedParam
@@ -59,6 +63,11 @@ class ProfileConditions:
   # Prescribed values for r=0. When evolving, then is initial condition.
   Te_bound_left: TimeDependentField = 15.0
   Ti_bound_left: TimeDependentField = 15.0
+  # Prescribed or evolving values for r.
+  # TODO(b/323504363): discuss what the interface here should look like and if we
+  # should remove Te_bound_left and Ti_bound_left
+  Ti: TimeAndRhoDependentField | None = None
+  Te: TimeAndRhoDependentField | None = None
 
   # Peaking factor of density profile.
   # If density evolves with PDE (dens_eq=True), then is initial condition

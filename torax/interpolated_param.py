@@ -15,6 +15,7 @@
 """Classes and functions for defining interpolated parameters."""
 
 import abc
+from collections.abc import Mapping
 import enum
 import chex
 import jax.numpy as jnp
@@ -223,6 +224,68 @@ class InterpolatedParam(InterpolatedParamBase):
     return self._is_bool_param
 
 
+class DoublyInterpolatedParam:
+  """Interpolates on a grid (x,y).
+
+  - Given `values` that map from x-values to `InterpolatedParam`s that tell you
+  how to interpolate along y for different x values this class linearly
+  interpolates the remainder of the contained x values.
+  - For x values that are outside the range of `values` the closest defined
+  `InterpolatedParam` is used.
+  """
+
+  def __init__(
+      self,
+      values: Mapping[float, InterpolatedParamInput],
+      y_interpolation_mode: InterpolationMode = (
+          InterpolationMode.PIECEWISE_LINEAR
+      ),
+  ):
+    if len(set(values.keys())) != len(values):
+      raise ValueError('Indicies in values mapping must be unique.')
+    if not values:
+      raise ValueError('Values mapping must not be empty.')
+    self.values = {
+        v: InterpolatedParam(values[v], y_interpolation_mode)
+        for v in values.keys()
+    }
+    self.sorted_indices = jnp.array(sorted(values.keys()))
+
+  def get_value(
+      self,
+      x: chex.Numeric,
+      y: chex.Numeric,
+  ) -> jnp.ndarray:
+    """Returns the value of this parameter interpolated at the given (x,y).
+
+    This method is not jittable as it is.
+
+    Args:
+      x: The x-coordinate to interpolate at.
+      y: The y-coordinate to interpolate at.
+    Returns:
+      The value of the interpolated at the given (x,y).
+    """
+    # Find the index that is left of value which x is closest to.
+    left = jnp.searchsorted(self.sorted_indices, x, side='left')
+
+    # If x is either smaller or larger than smallest and largest values use the
+    # boundary interpolater.
+    if left == 0:
+      return self.values[float(self.sorted_indices[0])].get_value(y)
+    if left == len(self.sorted_indices):
+      return self.values[float(self.sorted_indices[-1])].get_value(y)
+
+    # Interpolate between the two closest defined interpolaters.
+    left_x = float(self.sorted_indices[left - 1])
+    right_x = float(self.sorted_indices[left])
+    return self.values[left_x].get_value(y) * (right_x - x) / (
+        right_x - left_x
+    ) + self.values[right_x].get_value(y) * (x - left_x) / (
+        right_x - left_x
+    )
+
+
 # In runtime_params, users should be able to either specify the
 # InterpolatedParam object directly or the values that go in the constructor.
 # This helps with brevity since a lot of these params are fixed floats.
@@ -230,4 +293,8 @@ InterpParamOrInterpParamInput = (
     InterpolatedParam
     | InterpolatedParamInput
     | tuple[InterpolatedParamInput, str]
+)
+DoublyInterpParamOrDoublyInterpParamInput = (
+    DoublyInterpolatedParam
+    | dict[float, InterpolatedParamInput]
 )
