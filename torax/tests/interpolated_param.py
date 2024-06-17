@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """Unit tests for torax.interpolated_param."""
+import random
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -206,6 +207,133 @@ class InterpolatedParamTest(parameterized.TestCase):
           xs=jnp.array([4.0, 2.0, 1.0, 3.0]),
           ys=jnp.array([1.0, 2.0, 3.0, 4.0]),
       )
+
+  @parameterized.named_parameters(
+      # One line cases.
+      {
+          'testcase_name': 'one_line_case_1',
+          'values': {1.0: {0: 0.0, 0.3: 0.5, 0.9: 1, 1: 1.0}},
+          'x': random.uniform(0, 2),
+          'y': 0.0,
+          'expected_output': 0.0,
+      },
+      {
+          'testcase_name': 'one_line_case_2',
+          'values': {1.0: {0: 0.0, 0.3: 0.5, 0.9: 1.0, 1: 1.0}},
+          'x': random.uniform(0, 2),
+          'y': 0.95,
+          'expected_output': 1,
+      },
+      {
+          'testcase_name': 'one_line_case_3',
+          'values': {1.0: {0: 0.0, 0.3: 0.5, 0.8: 1.0, 1: 1.0}},
+          'x': random.uniform(0, 2),
+          'y': 0.7,
+          'expected_output': 0.9,
+      },
+      # Two lines cases, constant at x=0, linear between 0 and 1 at x=1.
+      {
+          'testcase_name': 'two_line_case_1',
+          'values': {0.0: 0.0, 1.0: {0: 0.0, 1: 1.0}},
+          'x': 0.0,
+          'y': random.randrange(0, 1),
+          'expected_output': 0.0,
+      },
+      {
+          'testcase_name': 'two_line_case_2',
+          'values': {0.0: 0.0, 1.0: {0: 0.0, 1: 1.0}},
+          'x': 1.0,
+          'y': 0.0,
+          'expected_output': 0.0,
+      },
+      {
+          'testcase_name': 'two_line_case_3',
+          'values': {0.0: 0.0, 1.0: {0: 0.0, 1: 1.0}},
+          'x': 1.0,
+          'y': 1.0,
+          'expected_output': 1.0,
+      },
+      {
+          'testcase_name': 'two_line_case_4',
+          'values': {0.0: 0.0, 1.0: {0: 0.0, 1: 1.0}},
+          'x': 1.0,
+          'y': 0.5,
+          'expected_output': 0.5,
+      },
+      {
+          'testcase_name': 'two_line_case_5',
+          'values': {0.0: 0.0, 1.0: {0: 0.0, 1: 1.0}},
+          'x': 0.5,
+          'y': 0.5,
+          'expected_output': 0.25,
+      },
+      {
+          'testcase_name': 'two_line_case_6',
+          'values': {0.0: 0.0, 1.0: {0: 0.0, 1: 1.0}},
+          'x': 0.5,
+          'y': 0.75,
+          'expected_output': 0.375,
+      },
+      # Test cases with 4 interpolated lines along the x axis.
+      # Case in between the first two lines.
+      {
+          'testcase_name': 'four_line_case_1',
+          'values': {
+              0.0: {0: 0.0, 1: 0.0},
+              1.0: {0: 0.0, 0.3: 0.5, 0.8: 1.0, 1: 1.0},
+              2.0: {0: 1.0, 0.5: 0},
+              3.0: {0: 1.0, 1: 0.0},
+          },
+          'x': 0.5,
+          'y': 0.5,
+          'expected_output': 0.35
+      },
+      # Case in between the second and third lines.
+      {
+          'testcase_name': 'four_line_case_2',
+          'values': {
+              0.0: {0: 0.0, 1: 0.0},
+              1.0: {0: 0.0, 0.3: 0.5, 0.8: 1.0, 1: 1.0},
+              2.0: {0: 1.0, 0.5: 0},
+              3.0: {0: 1.0, 1: 0.0},
+          },
+          'x': 1.2,
+          'y': 0.5,
+          'expected_output': 0.56
+      },
+      # Case in between the third and fourth lines.
+      {
+          'testcase_name': 'four_line_case_3',
+          'values': {
+              0.0: {0: 0.0, 1: 0.0},
+              1.0: {0: 0.0, 0.3: 0.5, 0.8: 1.0, 1: 1.0},
+              2.0: {0: 1.0, 0.5: 0},
+              3.0: {0: 1.0, 1: 0.0},
+          },
+          'x': 2.8,
+          'y': 0.5,
+          'expected_output': 0.4
+      },
+      # Case where y is an array.
+      {
+          'testcase_name': 'y_array_case',
+          'values': {
+              2.0: {0: 1.0, 0.5: 0},
+              3.0: {0: 1.0, 1: 0.0},
+          },
+          'x': 2.8,
+          'y': np.array([0.1, 0.5, 0.6]),
+          'expected_output': np.array([0.88, 0.4, 0.32,])
+      }
+  )
+  def test_doubly_interpolated_param(self, values, x, y, expected_output):
+    """Tests the doubly interpolated param gives correct outputs on 2D mesh."""
+    doubly_interpolated_param = interpolated_param.DoublyInterpolatedParam(
+        values
+    )
+
+    output = doubly_interpolated_param.get_value(x=x, y=y)
+    np.testing.assert_allclose(output, expected_output)
 
 
 if __name__ == '__main__':

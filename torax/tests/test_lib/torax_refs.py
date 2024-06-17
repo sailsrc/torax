@@ -21,6 +21,7 @@ import chex
 from jax import numpy as jnp
 import numpy as np
 import torax
+from torax.config import build_sim
 from torax.config import config_args
 from torax.config import runtime_params as general_runtime_params
 
@@ -212,7 +213,7 @@ def chease_references_Ip_from_chease() -> References:  # pylint: disable=invalid
           },
       },
   )
-  geo = geometry.build_geometry_from_chease(
+  geo = build_sim.build_and_update_geometry_from_chease(
       runtime_params=runtime_params,
       geometry_dir=_GEO_DIRECTORY,
       geometry_file='ITER_hybrid_citrin_equil_cheasedata.mat2cols',
@@ -365,7 +366,7 @@ def chease_references_Ip_from_runtime_params() -> References:  # pylint: disable
           },
       },
   )
-  geo = geometry.build_geometry_from_chease(
+  geo = build_sim.build_and_update_geometry_from_chease(
       runtime_params=runtime_params,
       geometry_dir=_GEO_DIRECTORY,
       geometry_file='ITER_hybrid_citrin_equil_cheasedata.mat2cols',
